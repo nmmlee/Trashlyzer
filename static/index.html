@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>tmp test</title>
+        <script>
+            async function sendQuery() {
+                const userInput = document.getElementById("userInput").value; // 입력값 가져오기
+                const responseBox = document.getElementById("result"); // 결과 출력할 곳
+    
+                if (!userInput.trim()) {
+                    responseBox.innerText = "보낼값 입력";
+                    return;
+                }
+    
+                try {
+                    // Node.js 서버로 데이터 전송
+                    const res = await fetch("http://localhost:3000/ask", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ text: userInput })
+                    });
+    
+                    const data = await res.json();
+                    responseBox.innerText = `LLM 응답 : ${data.llm_response}`;
+                } catch (error) {
+                    console.error("Errrror : ", error);
+                }
+            }
+        </script>
+    </head>
+
+
+    <body>
+        <input type="text" id="userInput" placeholder="텍스트 입력">
+        <p id="result">결과 표시되는 곳</p>
+        <button onclick="sendQuery()">보내기</button>
+    </body>
+</html>
