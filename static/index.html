@@ -1,41 +1,86 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>tmp test</title>
-        <script>
-            async function sendQuery() {
-                const userInput = document.getElementById("userInput").value; // 입력값 가져오기
-                const responseBox = document.getElementById("result"); // 결과 출력할 곳
-    
-                if (!userInput.trim()) {
-                    responseBox.innerText = "보낼값 입력";
-                    return;
-                }
-    
-                try {
-                    // Node.js 서버로 데이터 전송
-                    const res = await fetch("http://localhost:3000/ask", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ text: userInput })
-                    });
-    
-                    const data = await res.json();
-                    responseBox.innerText = `LLM 응답 : ${data.llm_response}`;
-                } catch (error) {
-                    console.error("Errrror : ", error);
-                }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>tmp tes</title>
+    <script>
+        async function sendQuery() {
+            const userInput = document.getElementById("userInput").value; // 입력값 가져오기
+            const responseBox = document.getElementById("result"); // 결과 출력할 곳
+
+            if (!userInput.trim()) {
+                responseBox.innerText = "보낼값 입력";
+                return;
             }
-        </script>
-    </head>
 
+            try {
+                // Node.js 서버로 데이터 전송
+                const res = await fetch("http://localhost:3000/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ text: userInput })
+                });
 
-    <body>
-        <input type="text" id="userInput" placeholder="텍스트 입력">
-        <p id="result">결과 표시되는 곳</p>
-        <button onclick="sendQuery()">보내기</button>
-    </body>
+                const data = await res.json();
+                responseBox.innerText = `LLM 응답 : ${data.llm_response}`;
+            } catch (error) {
+                console.error("Errrror : ", error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <header id = "header">
+        <div>Trashlyzer</div>
+    </header>
+
+    <div id = "main">
+        <div id = "help-area">
+            <div id = "help-title">
+                <span><img src = "Image/Icon_light.png"></span>
+                <span><b>노원구 대형 쓰레기 분리배출</b></span>
+            </div>
+            <div id = "help-text-area">
+                <span id ="help-text">이미지를 입력 후, 요청사항을 작성하면 대형 쓰레기 처리비용을 알아볼 수 있습니다!</span>
+            </div>
+        </div>
+
+        <!-- 사용자와 상호작용 하는 공간-->
+        <div id = "content-containers">
+            <!-- gpt 응답이 들어갈 공간-->
+            <div id = "answer-content-container">
+                <div id ="answer-title">
+                    답변
+                </div>
+                <div id = "gpt-answer-text">
+                    <p id="result">결과 표시되는 곳</p>
+                </div>
+            </div>
+            
+            <div id = "user-input-containers">
+                <!-- 이미지 선택 카드 UI-->
+                <div id = "user-image-container">
+                    <div><button id = "button">대형 쓰레기 이미지 선택</button></div>
+                    <div id = "user-image-help">여러분들의 이미지는 보호됩니다! 저장 없이 진행됩니다.</div>
+                </div>
+                <!-- 유저 텍스트 입력 카드 UI-->
+                <div id = "user-text-containers">
+                    <div id = "user-input-help">
+                        😀대형쓰레기 이미지와 함께 전달하고 싶은 내용을
+                        작성해주세요!
+                    </div>
+                    <div id = "user-text-input-container">
+                        <input type="text" id="userInput" placeholder="텍스트 입력">
+                        <button onclick="sendQuery()">↑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</head>
 </html>
