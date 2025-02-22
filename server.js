@@ -10,17 +10,28 @@ const PYTHON_LLM_URL = "http://localhost:8000/generate/";  // Python 서버 주�
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('static'));
+//app.use(express.static(path.join(__dirname, "public")));  // public 폴더를 정적 파일 제공
 
 // 메인 홈 get요청 처리
 app.get('/', (request, response) => {
-    fs.readFile('static/index.html', 'UTF-8', (err, data) => {
+    fs.readFile('index.html', 'UTF-8', (err, data) => {
         if (err) { 
-            response.send('No Such File of Directory');
+            response.send('No html');
         }
         response.send(data);
     })
   })
-//app.use(express.static(path.join(__dirname, "public")));  // public 폴더를 정적 파일 제공
+
+  app.get('/style.css', (request, response) => {
+    fs.readFile('static/style.css', 'UTF-8', (err, data) => {
+        if (err) { 
+            response.send('No css');
+        }
+        response.send(data);
+    })
+  })
+
 
 // 유저 요청 post -> LLM 서버로 전달
 app.post("/ask", async (req, res) => {
