@@ -2,8 +2,20 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import json
 
 app = FastAPI()
+
+# 토큰 불러오기
+chatgpt_token : str = ""
+with open('api_token.json', 'r') as f:
+    try:
+        chatgpt_token = json.load(f)['chatgpt']['token']
+        print("successfully loaded : " + chatgpt_token[:3] + "****...")
+    except Exception as e:
+        chatgpt_token = ""
+        print("Error : ", e)
+
 
 MODEL_ID = "Bllossom/llama-3.2-Korean-Bllossom-3B"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
@@ -15,7 +27,7 @@ model = AutoModelForCausalLM.from_pretrained(
 
 if tokenizer.pad_token_id is None:
     tokenizer.pad_token_id = tokenizer.eos_token_id
-model.config.pad_token_id = tokenizer.pad_token_id 
+model.config.pad_token_id = tokenizer.pad_token_id
 
 class QueryRequest(BaseModel):
     text: str
