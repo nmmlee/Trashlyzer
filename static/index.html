@@ -7,28 +7,35 @@
     <title>tmp tes</title>
     <script>
         async function sendQuery() {
-            const userInput = document.getElementById("userInput").value; // 입력값 가져오기
+            const userInput = document.getElementById("user-text").value; // 입력값 가져오기
+            const userImage = document.getElementById("user-image").files[0]; // 입력이미지 가져오기
             const responseBox = document.getElementById("result"); // 결과 출력할 곳
 
             if (!userInput.trim()) {
                 responseBox.innerText = "보낼값 입력";
                 return;
             }
+            
+            var formData = new FormData();
+            formData.append("text", userInput);
+            if (userImage) {
+                formData.append("image", userImage);
+            }
+
+            console.log(formData.body);
 
             try {
                 // Node.js 서버로 데이터 전송
                 const res = await fetch("http://localhost:3000/ask", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ text: userInput })
+                    body : formData
                 });
 
                 const data = await res.json();
+                console.log("success");
                 responseBox.innerText = `LLM 응답 : ${data.llm_response}`;
             } catch (error) {
-                console.error("Errrror : ", error);
+                console.error("[html] 데이터전송 실패 : ", error);
             }
         }
     </script>
@@ -63,7 +70,7 @@
             <div id = "user-input-containers">
                 <!-- 이미지 선택 카드 UI-->
                 <div id = "user-image-container">
-                    <div><button id = "button">대형 쓰레기 이미지 선택</button></div>
+                    <div><input type="file" id="user-image" placeholder="대형 쓰레기 이미지 선택"></div>
                     <div id = "user-image-help">여러분들의 이미지는 보호됩니다! 저장 없이 진행됩니다.</div>
                 </div>
                 <!-- 유저 텍스트 입력 카드 UI-->
@@ -73,7 +80,7 @@
                         작성해주세요!
                     </div>
                     <div id = "user-text-input-container">
-                        <input type="text" id="userInput" placeholder="텍스트 입력">
+                        <input type="text" id="user-text" placeholder="텍스트 입력">
                         <button onclick="sendQuery()">↑</button>
                     </div>
                 </div>

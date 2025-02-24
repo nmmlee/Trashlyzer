@@ -3,6 +3,9 @@ from pydantic import BaseModel
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import json
+import base64
+import io
+from PIL import Image
 
 app = FastAPI()
 
@@ -31,6 +34,7 @@ model.config.pad_token_id = tokenizer.pad_token_id
 
 class QueryRequest(BaseModel):
     text: str
+    image: str | None = None # base64로 인코딩된 이미지 파일
 
 @app.post("/generate/")
 async def generate_text(request: QueryRequest):
