@@ -46,20 +46,18 @@ app.post("/ask", upload.fields([{ name: "image", maxCount: 1 }, { name: "text", 
         console.log(`[nodejs] 유저 질의 : ${userQuery}`);
         
         // 이미지 존재여부 확인
-        if (req.files.image.length > 0) {
+        if (req.files && req.files.image && req.files.image.length > 0) {
             // console.log("there's image");
             userImage = req.files.image[0].buffer.toString("base64")
+            req.files.image.buffer = null; // 메모리 누수 방지
         } // else console.log("there's no image");
 
 
         // Python LLM 서버로 요청 보내기.
         const response = await axios.post(PYTHON_LLM_URL, { 
-            text: userQuery,
+            text : userQuery,
             image : userImage
         });
-
-        // 메모리 누수 방지
-        req.files.image.buffer = null;
 
         console.log(`[nodejs] LLM 응답 : ${response.data.llm_response}`);
         res.json({ llm_response: response.data.llm_response });
