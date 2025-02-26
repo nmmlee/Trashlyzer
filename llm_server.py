@@ -26,7 +26,9 @@ class QueryRequest(BaseModel):
 @app.post("/generate/")
 async def generate_text(request: QueryRequest):
     instruction = request.text.strip() # 유저 질의
-    user_image = base64_to_img(request.image) # 유저 이미지
+    user_image = ""
+    if request.image != "":
+        user_image = base64_to_img(request.image)
 
     # 키워드 추출 함수 (data_processing 모듈)
     extracted_keyword = extract_llm_keywords(instruction)
