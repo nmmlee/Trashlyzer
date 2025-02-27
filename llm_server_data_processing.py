@@ -4,6 +4,7 @@ import re
 from llama_cpp import Llama
 from rapidfuzz import process, fuzz
 import pymysql # Mariadb 커넥트
+import json
 
 QUERY_FIND = '''SELECT response FROM cache WHERE keyword = %s'''
 QUERY_INSERT = '''
@@ -69,11 +70,19 @@ def extract_llm_keywords(user_input: str):
 
 # 쿼리 사용시에만 db 연결. 테이블 cache 컬럼 keyword, response
 def execute_query(query: str, *args):
+    # 커넥션 정보 불러오기
+    f = open("secret.json", "r")
+    config = json.load(f)
+    host = config["MariaDB"]["host"]
+    port = config["MariaDB"]["port"]
+    user = config["MariaDB"]["user"]
+    password = config["MariaDB"]["password"]
+    db = config["MariaDB"]["database"]
     connection = pymysql.connect(host='localhost',
-                        port=3306,
-                        user='root',
-                        password='', # TODO: secret.json 에서 username, 비밀번호 가져오기 구현
-                        db = 'cachedb',
+                        port=port,
+                        user=user,
+                        password=password,
+                        db = db,
                         charset='utf8mb4')
     cursor = connection.cursor()
     result = cursor.execute(query, args) # 기본값 = 영향받은 row 수
