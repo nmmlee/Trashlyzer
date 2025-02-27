@@ -33,13 +33,18 @@ async def generate_text(request: QueryRequest):
     # 키워드 추출 함수 (data_processing 모듈)
     extracted_keyword = extract_llm_keywords(instruction)
 
-    cached_response = hit_cache_response(extracted_keyword)
+    # 캐시히트시 캐시된 답변 전송
+    cached_response: str = hit_cache_response(extracted_keyword)
     if cached_response != "해당 품목을 찾을 수 없습니다.":
         return {"llm_response": cached_response}
+    
     # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
     similar_items = find_closest_item(extracted_keyword, 5)
 
     # 응답생성  (data_processing 모듈)
     response_text = generate_llm_response(instruction, extracted_keyword, similar_items)
+    
+    # 생성된 응답 캐시에 저장
+    insert_cache(extracted_keyword, response_text)
 
     return {"llm_response": response_text}
