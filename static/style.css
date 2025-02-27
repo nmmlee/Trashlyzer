@@ -82,16 +82,12 @@ body{
     box-shadow: 0 8px 24px -1px rgba(0,0,0,25%);
 }
 
-#user-image{
-    display: none;
-}
-
-label{
+#button{
     border-radius: 10px;
     background-color: #3A3838;
     color: #F3F3F3;
-    font-size: 16px;
-    padding: 10px 43px 10px 43px;
+    font-size: 20px;
+    padding: 10px 50px 10px 50px;
 }
 
 #user-image-help{
@@ -185,7 +181,7 @@ label{
         margin-top: 35px;
     }
 
-    #user-image{
+    #button{
         border-radius: 10px;
         background-color: #3A3838;
         color: #F3F3F3;
