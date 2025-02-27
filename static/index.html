@@ -38,6 +38,33 @@
                 console.error("[html] 데이터전송 실패 : ", error);
             }
         }
+        // DOM이 완전히 로드된 후 이벤트 리스너 추가
+        document.addEventListener("DOMContentLoaded", function () {
+            // image input에 이벤트 추가
+            document.getElementById("user-image").addEventListener("change", function (event) {
+                const file = event.target.files[0];
+                // 제한하는 확장자
+                const allowedExtensions = ["png", "jpeg", "jpg", "webp"];
+                const helpText = document.getElementById("user-image-help");
+                if (file) {
+                    const fileExtension = file.name.split('.').pop().toLowerCase();
+                    // 지원하지 않은 확장자일 경우
+                    if (!allowedExtensions.includes(fileExtension)) {
+                        event.target.value = "";
+                        helpText.textContent = "지원하지 않는 파일 형식입니다.";
+                        helpText.style.color = "red";
+                    } else {
+                        helpText.textContent = `${file.name} 정상적으로 선택되었습니다.`;
+                        helpText.style.color = "green";
+                    }
+                    // 파일 선택이 되어있지 않을 경우
+                } else {
+                    helpText.textContent = "여러분들의 이미지는 보호됩니다! 저장 없이 진행됩니다.";
+                    helpText.style.color = "black";
+                }
+            });
+        });
+
     </script>
 </head>
 <body>
@@ -70,10 +97,10 @@
             <div id = "user-input-containers">
                 <!-- 이미지 선택 카드 UI-->
                 <div id = "user-image-container">
-                    <label>
-                        대형 쓰레기 이미지 선택
-                        <div><input type="file" id="user-image" placeholder="대형 쓰레기 이미지 선택"></div>
-                    </label>
+                    <label for = "user-image">
+                        대형 쓰레기 이미지 선택        
+                        <input type="file" id="user-image" placeholder="대형 쓰레기 이미지 선택" accept=".png, .jpeg, .jpg, .webp">               
+                    </label>                   
                     <div id = "user-image-help">여러분들의 이미지는 보호됩니다! 저장 없이 진행됩니다.</div>
                 </div>
                 <!-- 유저 텍스트 입력 카드 UI-->
