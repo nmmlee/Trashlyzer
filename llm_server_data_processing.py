@@ -6,7 +6,7 @@ from rapidfuzz import process, fuzz
 
 # GGUF 모델 Path선언
 MODEL_PATH_MAIN = "./models/Big.gguf"  #파라미터가 많은 대답용 LLM
-MODEL_PATH_KEYWORD = "./models/Little.gguf"  # 문장에서 CSV에 검색할 키워드를 반환하는 소형 LLM
+MODEL_PATH_KEYWORD = "./models/little.gguf"  # 문장에서 CSV에 검색할 키워드를 반환하는 소형 LLM
 """
 이 프로젝트는 Meta의 Llama 3.1 모델과 Alibaba의 Qwen 2.5 모델을 사용합니다.
 
@@ -33,10 +33,13 @@ items = df["품목"].astype(str).unique().tolist()
 def extract_llm_keywords(user_input: str):
     prompt = f"""
 - **사용자의 입력**에서 **버리려는** **핵심 품목**을 한 단어로만 반환하세요.
-- 예제: '나 2층 침대 사다리 버리고 싶어' → '2층 침대 사다리'
+- 예제: '나 2층 침대 사다리 버리고 싶어' → '2층침대사다리'
+- 예제: '나 차량용 시트를 버리고싶어' -> '차량용시트'
+- 예제: '나 2층침대의 사다리를 버리고싶어' -> '2층침대사다리'
 - 문장의 형태가 되면 안 됩니다.
 - 다른 설명 없이 **핵심 품목 키워드만** 반환하세요.
 - 한 개의 단어는 꼭 포함되어야 합니다.
+- 한국어로 설명하세요
 
 사용자 입력: {user_input}
 출
@@ -45,6 +48,7 @@ def extract_llm_keywords(user_input: str):
     #End of text 선언, 키워드 추출
     response = llm_keyword(prompt, max_tokens=15, temperature=0, stop=["\n", "<|endoftext|>", "<|im_end|>"])
     extracted_keyword = response["choices"][0]["text"].strip()
+    print(extracted_keyword)
 
     #필터링
     extracted_keyword = re.sub(r"<\|.*?\|>", "", extracted_keyword).strip()
@@ -55,6 +59,18 @@ def extract_llm_keywords(user_input: str):
         extracted_keyword = user_input.strip()
     return extracted_keyword
 
+#캐싱 함수
+def hit_cache_response(keyword):
+    #cache table 불러오기
+    output_file_path = './cache_memory.csv'
+    df = pd.read_csv(output_file_path, encoding="utf-8-sig")
+    #키워드에서 keyword와 같은지 확인
+    result = df[df["키워드"] == keyword]
+    if not result.empty:
+        #있을시
+        return result.iloc[0]["응답"]
+    #없을시
+    return "해당 품목을 찾을 수 없습니다."
 #유사도 검색, Fuzz 유사도
 def find_closest_item(query: str, top_k):
     matches = process.extract(query, items, scorer=fuzz.partial_ratio, limit=top_k)
@@ -79,6 +95,7 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 미만)",1000
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 이상)",1500
 5. '장롱 옷장'처럼 두 개의 품목이 함께 표시된 경우, 두 품목 모두 해당됩니다. 수수료를 안내해야 합니다.
+6. 사용자 질문의 정보가 부족하다면, 비슷한 품목을 최대한 많이 설명하세요. 수수료 없이 답변하는것은 가급적 자제하세요
 
 
 [사용자 질문]
