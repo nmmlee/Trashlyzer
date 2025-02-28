@@ -42,7 +42,7 @@ def extract_llm_keywords(user_input: str):
 - 한국어로 설명하세요
 
 사용자 입력: {user_input}
-출
+
 출력:
 """
     #End of text 선언, 키워드 추출
@@ -95,8 +95,7 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 미만)",1000
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 이상)",1500
 5. '장롱 옷장'처럼 두 개의 품목이 함께 표시된 경우, 두 품목 모두 해당됩니다. 수수료를 안내해야 합니다.
-6. 사용자 질문의 정보가 부족하다면, 비슷한 품목을 최대한 많이 설명하세요. 수수료 없이 답변하는것은 가급적 자제하세요
-
+6. 구체적인 정보가 필요한경우 비슷한 품목들을 일단 설명하시고, 추가 정보를 요구하세요.
 
 [사용자 질문]
 {user_input}
