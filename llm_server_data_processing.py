@@ -3,6 +3,15 @@ import pandas as pd
 import re
 from llama_cpp import Llama
 from rapidfuzz import process, fuzz
+import pymysql # Mariadb 커넥트
+import json
+
+QUERY_FIND = '''SELECT response FROM cache WHERE keyword = %s'''
+QUERY_INSERT = '''
+            INSERT INTO cache (keyword, response)
+            VALUES (%s, %s)
+            ON DUPLICATE KEY UPDATE response = VALUES(response);
+            '''
 
 # GGUF 모델 Path선언
 MODEL_PATH_MAIN = "./models/Big.gguf"  #파라미터가 많은 대답용 LLM
@@ -27,7 +36,7 @@ llm_keyword = Llama(model_path=MODEL_PATH_KEYWORD, n_gpu_layers=0, n_ctx=4800, v
 # csv 불러오기, 품목에서 유사도 검색에 방해되는 (), / 제외한 csv 사용.
 file_path = "./대형폐기물분류표_정제.csv"
 df = pd.read_csv(file_path)
-items = df["품목"].astype(str).unique().tolist()
+items = df["품목"].astype(str).unique().tolist() # TODO: items변수, 및 관련로직 MariaDB에서 가져오는 것으로 수정하기
 
 #LLM에서 키워드 추출
 def extract_llm_keywords(user_input: str):
@@ -59,21 +68,62 @@ def extract_llm_keywords(user_input: str):
         extracted_keyword = user_input.strip()
     return extracted_keyword
 
-#캐싱 함수
-def hit_cache_response(keyword):
-    #cache table 불러오기
-    output_file_path = './cache_memory.csv'
-    df = pd.read_csv(output_file_path, encoding="utf-8-sig")
-    #키워드에서 keyword와 같은지 확인
-    result = df[df["키워드"] == keyword]
-    if not result.empty:
-        #있을시
-        return result.iloc[0]["응답"]
-    #없을시
-    return "해당 품목을 찾을 수 없습니다."
+# 쿼리 사용시에만 db 연결. 테이블 cache 컬럼 keyword, response
+def execute_query(query: str, *args):
+    # 커넥션 정보 불러오기
+    f = open("secret.json", "r")
+    config = json.load(f)
+    host = config["MariaDB"]["host"]
+    port = config["MariaDB"]["port"]
+    user = config["MariaDB"]["user"]
+    password = config["MariaDB"]["password"]
+    db = config["MariaDB"]["database"]
+    connection = pymysql.connect(host='localhost',
+                        port=port,
+                        user=user,
+                        password=password,
+                        db = db,
+                        charset='utf8mb4')
+    cursor = connection.cursor()
+    result = cursor.execute(query, args) # 기본값 = 영향받은 row 수
+    try:
+        # SELECT 문이면 SELECT 결과 리턴
+        if (query.strip().upper().startswith("SELECT")):
+            result = cursor.fetchall()
+        # 이외에는 실행확정하고 row 수 반납(int)
+        else:
+            cursor.commit()
+        cursor.close()
+        connection.close()
+        return result
+    
+    except Exception as e:
+        cursor.close()
+        connection.close()
+        print(e) # 오류 발생
+        return result # 오류시 주로 0 리턴됨(=영향받은 row 0개)
+
+    
+
+# 캐싱 함수
+def hit_cache_response(keyword: str):
+    # 캐시 테이블 키워드 존재 검색
+    response = execute_query(QUERY_FIND, keyword.strip())
+    # 캐시 미스
+    if response == None:
+        return "해당 품목을 찾을 수 없습니다."
+    # 캐시 히트
+    else:
+        return response
+
+# 키워드-응답 데이터 캐시에 저장
+def insert_cache(keyword: str, response: str):
+    return execute_query(QUERY_INSERT, keyword.strip(), response.strip())
+    
+
 #유사도 검색, Fuzz 유사도
 def find_closest_item(query: str, top_k):
-    matches = process.extract(query, items, scorer=fuzz.partial_ratio, limit=top_k)
+    matches = process.extract(query, items, scorer=fuzz.partial_ratio, limit=top_k) # TODO: items변수 db에서 가져오는걸로 수정
     
     # 유사도 점수 컷
     best_matches = [match[0] for match in matches if match[1] >= 55]
