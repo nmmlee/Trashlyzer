@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <title>tmp tes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <script>
         async function sendQuery() {
             const userInput = document.getElementById("user-text").value; // 입력값 가져오기
@@ -34,6 +35,10 @@
                 const data = await res.json();
                 console.log("success");
                 responseBox.innerText = `LLM 응답 : ${data.llm_response}`;
+
+                // showdown.js 이용(아래 주석 제거 하고, 위에 `LLM 응답` 코드 대신 넣으면 됩니다!) 
+                // const converter = new showdown.Converter();
+                // responseBox.innerHTML = converter.makeHtml(data.llm_response);
             } catch (error) {
                 console.error("[html] 데이터전송 실패 : ", error);
             }
