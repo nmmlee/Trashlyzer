@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <title>tmp tes</title>
+    <!-- TODO : showdown.js 라이센스 깃허브에 작성-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <script>
         async function sendQuery() {
@@ -69,12 +70,14 @@
                 }
             }
 
+            // TODO : 이미지 압축 코드 작성
             fileInput.addEventListener("change", function (event){
                 handleFile(event.target.files[0]);
             });
             
             // drag - drop 기능 구현. 드래그 및 hover 액션이면 파란 테두리 나타나게 함
             // drop했을 때 내려놓은 파일이 존재하는지 확인, 존재하면 해당 파일 유효성 유무 판단
+            // TODO : 화면 전체를 hover vs 입력 input만 hover
             dropArea.addEventListener("dragover", (e) => {
                 e.preventDefault();
                 dropArea.classList.add("hover");
