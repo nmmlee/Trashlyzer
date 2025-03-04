@@ -59,15 +59,17 @@ app.post("/ask", upload.fields([{ name: "image", maxCount: 1 }, { name: "text", 
         var userImage = "";
         
         // console.log("[nodejs] 유저 전송 데이터 body :", req.body);
-        console.log(`[nodejs] 유저 질의 : ${userQuery}`);
+        console.log(`[nodejs] request받은 유저 질의 : ${userQuery}`);
         
-        // 이미지 존재여부 확인
-        if (req.files && req.files.image && req.files.image.length > 0) {
-            // console.log("there's image");
-            userImage = req.files.image[0].buffer.toString("base64")
+        // 이미지 1개 존재 확인
+        if (req.files && req.files.image && req.files.image.length == 1) {
+            console.log(`[nodejs] request받은 이미지 용량 : ${req.files.image[0].buffer.length / 1048576}MB`);
+            // 이미지 용량 검증 (8MB 넘으면 python서버에 이미지 전송 X)
+            if (req.files.image[0].buffer.length < 8388608) {
+                userImage = req.files.image[0].buffer.toString("base64") // base64 인코딩
+            }
             req.files.image.buffer = null; // 메모리 누수 방지
-        } // else console.log("there's no image");
-
+        }
 
         // Python LLM 서버로 요청 보내기.
         const response = await axios.post(PYTHON_LLM_URL, { 
@@ -75,7 +77,7 @@ app.post("/ask", upload.fields([{ name: "image", maxCount: 1 }, { name: "text", 
             image : userImage
         });
 
-        console.log(`[nodejs] LLM 응답 : ${response.data.llm_response}`);
+        console.log(`[nodejs] 생성된 LLM 응답 : ${response.data.llm_response}`);
         res.json({ llm_response: response.data.llm_response });
     } catch (error) {
         console.error("[nodejs] 오류 발생 :", error.message);
