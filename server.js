@@ -4,6 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+var rateLimit = require("express-rate-limit");
 
 const app = express();
 const storage = multer.memoryStorage();
@@ -14,6 +15,21 @@ const PYTHON_LLM_URL = "http://localhost:8000/generate/";  // Python 서버 주�
 app.use(cors());
 app.use(express.json());
 app.use(express.static('static'));
+
+
+// 동일 ip 잦은 llm 연산 요청 차단
+app.use("/ask", rateLimit({
+    windowMs: 30 * 1000, // 30초 간격
+    max: 5, // windowMs동안 최대 호출 횟수
+    handler(req, res) { // 제한 초과 시 콜백 함수
+        res.status(this.statusCode).json({
+          code: this.statusCode, // statusCode 기본값은 429
+          message: 'TOO MANY REQUESTS',
+          llm_response: '요청이 너무 많습니다. 잠시만 기다려주세요',
+       });
+    },
+}));
+
 
 // 메인 홈 get요청 처리
 app.get('/', (request, response) => {
