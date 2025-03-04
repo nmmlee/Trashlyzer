@@ -8,7 +8,10 @@ var rateLimit = require("express-rate-limit");
 
 const app = express();
 const storage = multer.memoryStorage();
-const upload = multer({ storage : storage});
+const upload = multer({
+    storage : storage,
+    limits : { fileSize : 10 * 1024 * 1024}, // 업로드 총(질의 + 사진) 10MB 제한
+});
 const PORT = 3000;
 const PYTHON_LLM_URL = "http://localhost:8000/generate/";  // Python 서버 주소
 
