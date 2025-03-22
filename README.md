@@ -1,5 +1,5 @@
 # Trashlyzer - AI 기반 대형 폐기물 배출 가이드 서비스
-
+![로고](https://github.com/nmmlee/Trashlyzer/blob/main/static/Image/Trashlyzer_Logo.png?raw=true)
 ## 프로젝트 인원
 
 | 이름       | 담당 파트                |
