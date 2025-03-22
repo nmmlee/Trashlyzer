@@ -1,5 +1,13 @@
 # Trashlyzer - AI 기반 대형 폐기물 배출 가이드 서비스
 
+## 프로젝트 인원
+
+| 이름       | 담당 파트                |
+|-----------|-----------------------|
+| 김정민(팀장) | 백엔드, 아키텍쳐 설계, 프로젝트 아이디어 제공   |
+| 황지환     | AI(llama.cpp 최적화,키워드 분석 LLM고안,유사도검색) |
+| 하민용     | 웹 UI/UX 디자인(반응형)          |
+
 ## 프로젝트 개요
 **Trashlyzer**는 AI를 활용하여 사용자가 버리려는 대형 폐기물의 배출 방법과 비용을 쉽게 안내하는 웹 서비스입니다. 
 대형 폐기물 배출 기준이 지역마다 다르고 정보 접근이 어려운 문제를 해결하고자 개발되었습니다.
@@ -7,7 +15,7 @@
 ## 주요 기능
 ### AI 기반 대형 폐기물 분석
 1. 텍스트 및 이미지 입력을 통해 폐기물 종류를 자동으로 인식
-1. Gemini Flash 모델로 이미지 분석, Qwen API로 텍스트 키워드 추출
+1. Gemini Flash 모델로 이미지 분석, Qwen API로 텍스트 키워드 추출, 캐싱 테이블 확인 후 hit시 데이터 출력, miss시 유사도 검색 후 Llama 3.1 답변 생성.
 
 ### 구청 배출 기준 자동 매칭
 1. AI 분석 결과를 지역별 대형 폐기물 배출 기준과 비교하여 최적의 배출 방법 추천
@@ -25,6 +33,7 @@
 ## 기술 스택
 ### 프론트엔드
 - **HTML/CSS/JavaScript** - UI 개발(media query 적용)
+- **showdown cdn** - markdown 문법 적용한 응답 변환
 
 ### 백엔드
 - **Node.js (Express)** - API 서버
@@ -58,21 +67,18 @@
 
 ## API 명세
 ### 대형 폐기물 분석 API
-#### 요청 (POST `/analyze`)
+#### 요청 (POST `/ask`)
 ```json
 {
-  "text": "사용하지 않는 소파",
-  "image": "base64-encoded-image"
+  "text": "유저 질의",
+  "image": "유저가 올린 해당 대형쓰레기 이미지 파일"
 }
 ```
 
 #### 응답
 ```json
 {
-  "waste_type": "소파",
-  "disposal_method": "지정된 대형 폐기물 스티커 구매 후 배출",
-  "cost": 10000,
-  "nearest_center": "서울시 강남구청 대형 폐기물 센터"
+  "llm_response" : "유저가 올린 이미지, 텍스트를 바탕으로 나온 응답"
 }
 ```
 
@@ -85,4 +91,8 @@
 - Qwen 2.5: Apache 2.0 License에 따라 제공됩니다.
   https://huggingface.co/Qwen/Qwen2.5-0.5B/blob/main/LICENSE
 
+  
 Copyright © Meta Platforms, Inc. / Alibaba Group Holding Limited.
+
+- showdown cdn: MIT License에 따라 제공됩니다.
+  https://github.com/showdownjs/showdown/blob/master/LICENSE
