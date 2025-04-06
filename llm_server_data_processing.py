@@ -18,7 +18,7 @@ QUERY_INSERT = '''
 
 # GGUF 모델 Path선언
 MODEL_PATH_MAIN = "./models/Big.gguf"  #파라미터가 많은 대답용 LLM
-MODEL_PATH_KEYWORD = "./models/little.gguf"  # 문장에서 CSV에 검색할 키워드를 반환하는 소형 LLM
+MODEL_PATH_KEYWORD = "./models/Big.gguf"  # 문장에서 CSV에 검색할 키워드를 반환하는 소형 LLM
 """
 이 프로젝트는 Meta의 Llama 3.1 모델과 Alibaba의 Qwen 2.5 모델을 사용합니다.
 
@@ -88,9 +88,12 @@ def execute_query(query: str, *args):
                         db = db,
                         charset='utf8mb4')
     cursor = connection.cursor()
-    result = cursor.execute(query, args) # 기본값 = 영향받은 row 수
+    if len(args) == 0: # 빈 튜플(args없이 실행)
+        result = cursor.execute(query)
+    else:
+        result = cursor.execute(query, args) # 기본값 = 영향받은 row 수
     try:
-        # SELECT 문이면 SELECT 결과 리턴
+        # SELECT 문이면 SELECT 결과(튜플) 리턴
         if (query.strip().upper().startswith("SELECT")):
             result = cursor.fetchall()
         # 이외에는 실행확정하고 row 수 반납(int)
