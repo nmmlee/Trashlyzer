@@ -8,6 +8,8 @@ import json
 from PIL import Image
 import google.generativeai as genai
 import cv2
+import os
+import time
 
 QUERY_FIND = '''SELECT response FROM cache WHERE keyword = %s'''
 QUERY_INSERT = '''
@@ -18,7 +20,7 @@ QUERY_INSERT = '''
 
 # GGUF 모델 Path선언
 MODEL_PATH_MAIN = "./models/Big.gguf"  #파라미터가 많은 대답용 LLM
-MODEL_PATH_KEYWORD = "./models/Big.gguf"  # 문장에서 CSV에 검색할 키워드를 반환하는 소형 LLM
+MODEL_PATH_KEYWORD = "./models/Little.gguf"  # 문장에서 CSV에 검색할 키워드를 반환하는 소형 LLM
 """
 이 프로젝트는 Meta의 Llama 3.1 모델과 Alibaba의 Qwen 2.5 모델을 사용합니다.
 
@@ -33,8 +35,22 @@ Copyright © Meta Platforms, Inc. / Alibaba Group Holding Limited.
 
 
 #모델 불러오기
-llm_main = Llama(model_path=MODEL_PATH_MAIN, n_gpu_layers=0, n_ctx=4800, verbose=False)
-llm_keyword = Llama(model_path=MODEL_PATH_KEYWORD, n_gpu_layers=0, n_ctx=4800, verbose=False)
+llm_main = Llama(
+    model_path=MODEL_PATH_MAIN,
+    n_gpu_layers=0,
+    n_threads=12,
+    n_batch=512,
+    n_ctx=4096,
+    verbose=False
+)
+llm_keyword = Llama(
+    model_path=MODEL_PATH_KEYWORD,
+    n_gpu_layers=0,
+    n_threads=12,
+    n_batch=512,
+    n_ctx=4096,
+    verbose=False
+)
 
 # csv 불러오기, 품목에서 유사도 검색에 방해되는 (), / 제외한 csv 사용.
 file_path = "./대형폐기물분류표_정제.csv"
@@ -48,11 +64,16 @@ def extract_llm_keywords(user_input: str):
 - 예제: '나 2층 침대 사다리 버리고 싶어' → '2층침대사다리'
 - 예제: '나 차량용 시트를 버리고싶어' -> '차량용시트'
 - 예제: '나 2층침대의 사다리를 버리고싶어' -> '2층침대사다리'
-- 문장의 형태가 되면 안 됩니다.
+- "문장의 형태가 되면 안 됩니다."
 - 다른 설명 없이 **핵심 품목 키워드만** 반환하세요.
 - 한 개의 단어는 꼭 포함되어야 합니다.
 - 반드시 한국어로 답변하세요
-예) 캐리어를 버리고 싶어요 -> "캐리어"
+예) 
+입력>나 ㅁㅁ ㅁㅁ를 버리고 싶어요 -출력> "ㅁㅁ"
+입력>ㅁㅁ ㅁㅁ 버리고싶은데 -출력> "ㅁㅁ"
+입력>좀 큰 ㅁㅁ를 버리려는데 얼마? -출력> "ㅁㅁ"
+
+
 
 사용자 입력: {user_input}
 
@@ -69,6 +90,7 @@ def extract_llm_keywords(user_input: str):
     #반환된 글자에 한글이 없을시 예) ```, 공백 시 문장 반환
     if not re.search(r"[가-힣]", extracted_keyword):
         extracted_keyword = user_input.strip()
+    print(f"[텍스트 추출 단어] : {extracted_keyword}")
     return extracted_keyword
 
 # 쿼리 사용시에만 db 연결. 테이블 cache 컬럼 keyword, response
@@ -145,9 +167,9 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
 
 [답변 규칙]
 1. 반드시 배출 규격과 가격 정보를 포함하세요.
-2. 불필요한 설명을 추가하지 말고, 핵심 정보만 전달하세요.
+2. 불필요한 설명을 추가하지 말고, 핵심 정보만 간결하게전달하세요.
 3. 리스트 형식이 아니라, 자연스럽게 문장으로 설명하세요.
-4. 유리 별도는 유리는 따로 돈을 받는다는 것이고, 유리는 아래와 같이 수수료를 내야합니다.
+4. 유리 별도는 유리는 따로 돈을 받는다는 것이고, 유리는 아래와 같이 수수료를 내야게합니다.
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 미만)",1000
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 이상)",1500
 5. '장롱 옷장'처럼 두 개의 품목이 함께 표시된 경우, 두 품목 모두 해당됩니다. 수수료를 안내해야 합니다.
@@ -174,7 +196,7 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
     response = llm_main(
         prompt,
         max_tokens=300,  
-        stop=["\n\n", "<|endoftext|>", "<|im_end|>"],  
+        stop=["<|endoftext|>", "<|im_end|>"],  
         temperature=0.1,  
         top_p=0.8,
         repeat_penalty=1.2,
@@ -196,8 +218,8 @@ def generate_special_llm_response(user_input: str, extracted_keyword: str,
 [이미지 분석 첫 번째 품목] [이미지 분석 두 번째 품목] [텍스트 분석 품목] 3가지를 읽고, 사용자의 질문에 답하세요.
 
 [답변 규칙]
-1. 반드시 배출 규격과 가격 정보를 포함하세요.
-2. 불필요한 설명을 추가하지 말고, 핵심 정보만 전달하세요.
+1. 반드시 배출 규격과 가격 정보를 포함하세요. 
+2. 불필요한 설명을 추가하지 말고, 핵심 정보만 간결하게, 300토큰 이하로 설명하세요.
 3. 리스트 형식이 아니라, 자연스럽게 문장으로 설명하세요.
 4. 유리 별도는 유리는 따로 돈을 받는다는 것이고, 유리는 아래와 같이 수수료를 내야합니다.
    - 가구류 유리(두께 8mm 미만): 긴 면이 50cm 마다 1000원
@@ -205,7 +227,8 @@ def generate_special_llm_response(user_input: str, extracted_keyword: str,
 5. '장롱 옷장'처럼 두 개의 품목이 함께 표시된 경우, 두 품목 모두 해당됩니다. 수수료를 안내해야 합니다.
 6. 이미지 업로드를 했기에 질문이 폐기물 배출 수수료와 관련이 없을수도 있습니다. 그럴땐 꼭 이미지 분석 첫번째 품목을 설명하도록 하세요.
 예) 저거 얼마인가요?, 저거 뭔지 알겠어? 
-7. 어떠한 경우에도 수수료 정보를 포함하도록 하세요.
+7. 어떠한 경우에도 수수료 정보를 포함하도록 하세요. 사용자가 자세한 정보를 넣지 않았어도, 일단 설명해야합니다.
+예) ㅁㅁ 얼마인가요? => 검색결과가 모호함,ㅁㅁ가 포괄적임 => 최대한 유사한 수수료정보 설명시작.
 [사용자 질문]
 {user_input}
 
@@ -243,16 +266,19 @@ def generate_special_llm_response(user_input: str, extracted_keyword: str,
     prompt += "\n\n[최종 답변]:"
 
     print(prompt)  
+    generate_start_time = time.time()
 
     response = llm_main(
         prompt,
         max_tokens=300,  
-        stop=["\n\n", "<|endoftext|>", "<|im_end|>"],  
+        stop=["<|endoftext|>", "<|im_end|>"],  
         temperature=0.1,  
         top_p=0.8,
         repeat_penalty=1.2,
     )
     
+    print(f"llama답변생성 소요시간 : {time.time() - generate_start_time:.1f}s")
+
     final_response = response["choices"][0]["text"].strip()
     final_response = re.sub(r"<\|.*?\|>", "", final_response).strip()  
     
