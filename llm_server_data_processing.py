@@ -2,7 +2,7 @@ from pydantic import BaseModel
 import pandas as pd
 import re
 from llama_cpp import Llama
-from rapidfuzz import process, fuzz
+# from rapidfuzz import process, fuzz
 import pymysql # Mariadb 커넥트
 import json
 from PIL import Image
@@ -64,11 +64,11 @@ vectorizer = SentenceTransformer("jhgan/ko-sroberta-multitask")
 
 # csv 불러오기, 품목에서 유사도 검색에 방해되는 (), / 제외한 csv 사용.
 file_path = "./data/대형폐기물분류표_노원_crawler.csv"
-df = pd.read_csv(file_path)
+df = pd.read_csv(file_path, encoding="euc-kr")
 items = df["품목"].astype(str).unique().tolist()
 
 # 코사인검색(벡터화 임베디드 데이터 기반)용 전처리 데이터(openai text-embedding-3-large 기반)
-with open("item_embeddings_large.json", "r", encoding="utf-8") as f:
+with open("./data/대형폐기물분류표_vectorized_sroberta.json", "r", encoding="utf-8") as f:
     embedding_data = json.load(f)
 item_texts = [item["text"] for item in embedding_data]
 item_vectors = np.array([item["embedding"] for item in embedding_data])
@@ -168,13 +168,14 @@ def insert_cache(keyword: str, response: str):
 #유사도 검색, 벡터화 데이터 기반 코사인 검색
 def find_closest_item(query: str, top_k):
     
-    query_vec = vectorizer.encode(query).reshape(1, -1)
+    query_vec = vectorizer.encode(query).reshape(1, -1) # 질의 키워드 벡터화
     similarities = cosine_similarity(query_vec, item_vectors)[0]
 
     sorted_indices = similarities.argsort()[::-1]
-    filtered = [(item_texts[i], similarities[i]) for i in sorted_indices if similarities[i] >= 0.65]
+    filtered = [(item_texts[i], similarities[i]) for i in sorted_indices] # if similarities[i] >= 0.65]
 
     best_matches = [text for text, sim in filtered[:top_k]]
+    print(f"[코사인 유사도 검색] **{query}**에 가까운 결과:\n{best_matches}")
     return best_matches if best_matches else ["해당 품목을 찾을 수 없습니다."]
 
 #응답생성 코드(파리미터 많은 LLM)

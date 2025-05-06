@@ -2,7 +2,7 @@ from pydantic import BaseModel
 import pandas as pd
 import re
 from llama_cpp import Llama
-from rapidfuzz import process, fuzz
+# from rapidfuzz import process, fuzz
 from fastapi import FastAPI
 import io
 from PIL import Image
@@ -42,7 +42,7 @@ async def generate_text(request: QueryRequest):
             #키워드 추출과 대조
             extracted_keyword = extract_llm_keywords(instruction)
             #Gemini 답장에 키워드가 있는경우
-            print(dapjang)
+            print("gemini 이미지분석 결과 :\n" + dapjang)
             if extracted_keyword in dapjang:
                     #캐시 확인
                     cached_response: str = hit_cache_response(extracted_keyword)
