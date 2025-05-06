@@ -8,6 +8,9 @@ import json
 from PIL import Image
 import google.generativeai as genai
 import cv2
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
 QUERY_FIND = '''SELECT response FROM cache WHERE keyword = %s'''
 QUERY_INSERT = '''
@@ -20,13 +23,19 @@ QUERY_INSERT = '''
 MODEL_PATH_MAIN = "./models/Big.gguf"  #파라미터가 많은 대답용 LLM
 MODEL_PATH_KEYWORD = "./models/Big.gguf"  # 문장에서 CSV에 검색할 키워드를 반환하는 소형 LLM
 """
-이 프로젝트는 Meta의 Llama 3.1 모델과 Alibaba의 Qwen 2.5 모델을 사용합니다.
+이 프로젝트는
+- Meta의 Llama 3.1 모델
+- Alibaba의 Qwen 2.5 모델
+- jhgan00의 ko-sroberta-multitask 모델
+을 사용합니다.
 
 라이선스 정보:
 - Llama 3.1: Meta의 Llama 3.1 License에 따라 제공됩니다
   https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE
 - Qwen 2.5: Apache 2.0 License에 따라 제공됩니다.
   https://huggingface.co/Qwen/Qwen2.5-0.5B/blob/main/LICENSE
+- ko-sroberta-multitask: CC-BY-4.0 License에 따라 제공됩니다.
+  https://github.com/jhgan00/ko-sentence-transformers/blob/main/LICENSE
 
 Copyright © Meta Platforms, Inc. / Alibaba Group Holding Limited.
 """
@@ -35,11 +44,18 @@ Copyright © Meta Platforms, Inc. / Alibaba Group Holding Limited.
 #모델 불러오기
 llm_main = Llama(model_path=MODEL_PATH_MAIN, n_gpu_layers=0, n_ctx=4800, verbose=False)
 llm_keyword = Llama(model_path=MODEL_PATH_KEYWORD, n_gpu_layers=0, n_ctx=4800, verbose=False)
+vectorizer = SentenceTransformer("jhgan/ko-sroberta-multitask")
 
 # csv 불러오기, 품목에서 유사도 검색에 방해되는 (), / 제외한 csv 사용.
-file_path = "./대형폐기물분류표_정제.csv"
+file_path = "./data/대형폐기물분류표_노원_crawler.csv"
 df = pd.read_csv(file_path)
-items = df["품목"].astype(str).unique().tolist() # TODO: items변수, 및 관련로직 MariaDB에서 가져오는 것으로 수정하기
+items = df["품목"].astype(str).unique().tolist()
+
+# 코사인검색(벡터화 임베디드 데이터 기반)용 전처리 데이터(openai text-embedding-3-large 기반)
+with open("item_embeddings_large.json", "r", encoding="utf-8") as f:
+    embedding_data = json.load(f)
+item_texts = [item["text"] for item in embedding_data]
+item_vectors = np.array([item["embedding"] for item in embedding_data])
 
 #LLM에서 키워드 추출
 def extract_llm_keywords(user_input: str):
@@ -127,13 +143,16 @@ def insert_cache(keyword: str, response: str):
     return execute_query(QUERY_INSERT, keyword.strip(), response.strip())
     
 
-#유사도 검색, Fuzz 유사도
+#유사도 검색, 벡터화 데이터 기반 코사인 검색
 def find_closest_item(query: str, top_k):
-    matches = process.extract(query, items, scorer=fuzz.partial_ratio, limit=top_k)
     
-    # 유사도 점수 컷
-    best_matches = [match[0] for match in matches if match[1] >= 55]
-    print(best_matches)
+    query_vec = vectorizer.encode(query).reshape(1, -1)
+    similarities = cosine_similarity(query_vec, item_vectors)[0]
+
+    sorted_indices = similarities.argsort()[::-1]
+    filtered = [(item_texts[i], similarities[i]) for i in sorted_indices if similarities[i] >= 0.65]
+
+    best_matches = [text for text, sim in filtered[:top_k]]
     return best_matches if best_matches else ["해당 품목을 찾을 수 없습니다."]
 
 #응답생성 코드(파리미터 많은 LLM)

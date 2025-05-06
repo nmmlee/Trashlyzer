@@ -3,6 +3,12 @@ from selenium.webdriver.common.by import By
 import time
 import csv
 
+########################################################
+# TODO: csv 스냅샷 & 폐기물분류표csv-vectorized 인덱스 매핑 테이블 만들어
+# 폐기물배출표의 품목 추가/삭제 등에 의한 인덱스 매핑 깨짐 방지하기
+# !!! 위의 TODO가 구현되기 전까지 이 크롤러를 실행하지 말아주세요 !!!
+########################################################
+
 options = webdriver.ChromeOptions()
 options.add_argument("--headless=new") # 크롤링 창 숨기기(백그라운드 작동)
 

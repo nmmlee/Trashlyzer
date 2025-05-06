@@ -4,7 +4,7 @@
 
 | 이름       | 담당 파트                |
 |-----------|-----------------------|
-| 김정민(팀장) | 백엔드, 아키텍쳐 설계, 프로젝트 아이디어 제공   |
+| 김정민(팀장) | 백엔드, 아키텍쳐 설계, 프로젝트 아이디어 제공, 유사도 검색   |
 | 황지환     | AI(llama.cpp 최적화,키워드 분석 LLM고안,유사도검색) |
 | 하민용     | 웹 UI/UX 디자인(반응형)          |
 
@@ -55,13 +55,14 @@
 ├── 📂 data            # 데이터 파일
 │   ├── 대형폐기물분류표_노원.csv
 │   ├── 대형폐기물분류표_정제.csv
+│   ├── 대형폐기물분류표_vectorized.json
 │   └── cache_memory.csv
 │
 ├── server.js          # Express 서버
-├── llm_server.py      # AI 서버 메인
+├── llm_server.py      # FastAPI AI 서버 메인
 ├── llm_server_data_processing.py  # 데이터 처리
 ├── llm_server_utilities.py        # 유틸리티 함수
-├── crawler.py         # 크롤러
+├── crawler.py         # 폐기물분류기준표 크롤러
 └── README.md
 ```
 
@@ -83,13 +84,19 @@
 ```
 
 ## 라이선스
-이 프로젝트는 Meta의 Llama 3.1 모델과 Alibaba의 Qwen 2.5 모델을 사용합니다.
+이 프로젝트는
+- Meta의 Llama 3.1 모델
+- Alibaba의 Qwen 2.5 모델
+- jhgan00의 ko-sroberta-multitask
+을 사용합니다.
 
 라이선스 정보:
 - Llama 3.1: Meta의 Llama 3.1 License에 따라 제공됩니다
   https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE
 - Qwen 2.5: Apache 2.0 License에 따라 제공됩니다.
   https://huggingface.co/Qwen/Qwen2.5-0.5B/blob/main/LICENSE
+- ko-sroberta-multitask: CC-BY-4.0 License에 따라 제공됩니다.
+  https://github.com/jhgan00/ko-sentence-transformers/blob/main/LICENSE
 
   
 Copyright © Meta Platforms, Inc. / Alibaba Group Holding Limited.
