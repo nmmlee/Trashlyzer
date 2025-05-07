@@ -203,16 +203,29 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
     if not matched_items or matched_items == ["해당 품목을 찾을 수 없습니다."]:
         prompt += "해당 품목을 찾을 수 없습니다.\n"
     else:
-        for item in matched_items:
-            relevant_data = df[df["품목"] == item][["규격", "가격"]].drop_duplicates()
-            prompt += f"{item} 중 "
-            details = []
-            for _, row in relevant_data.iterrows():
-                details.append(f"{row['규격']}은 {row['가격']}원")
+        dup = ""
+        for i in range(len(matched_items)):
+            raw = matched_items[i].split(",")
+            type = raw[0]
+            name = raw[1]
+            if dup == type + ',' + name:
+                txt = ""
+                for _ in raw[2:]:
+                    txt += _
+                prompt += f"\n-{txt} 원"
+            else:
+                dup = type + ',' + name
+                prompt += '\n' + dup
+                txt = ""
+                for _ in raw[2:]:
+                    txt += _
+                prompt += f"\n-{txt} 원"
 
-            prompt += ", ".join(details) + "입니다.\n"
     prompt += "\n\n[최종 답변]:"
     print(prompt)
+    
+    generate_start_time = time.time()
+    print("llama답변 생성 시작")
     response = llm_main(
         prompt,
         max_tokens=300,  
@@ -221,6 +234,7 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
         top_p=0.8,
         repeat_penalty=1.2,
     )
+    print(f"llama답변생성 소요시간 : {time.time() - generate_start_time:.1f}s")
     
     final_response = response["choices"][0]["text"].strip()
     final_response = re.sub(r"<\|.*?\|>", "", final_response).strip()  
@@ -249,45 +263,80 @@ def generate_special_llm_response(user_input: str, extracted_keyword: str,
 예) 저거 얼마인가요?, 저거 뭔지 알겠어? 
 7. 어떠한 경우에도 수수료 정보를 포함하도록 하세요. 사용자가 자세한 정보를 넣지 않았어도, 일단 설명해야합니다.
 예) ㅁㅁ 얼마인가요? => 검색결과가 모호함,ㅁㅁ가 포괄적임 => 최대한 유사한 수수료정보 설명시작.
+
 [사용자 질문]
 {user_input}
 
-[이미지 분석 첫 번째 품목]
-"""
+[이미지 분석 첫 번째 품목]"""
     if not first_items or first_items == ["해당 품목을 찾을 수 없습니다."]:
         prompt += "해당 품목을 찾을 수 없습니다.\n"
     else:
-        for item in first_items:
-            relevant_data = df[df["품목"] == item][["규격", "가격"]].drop_duplicates()
-            prompt += f"{item}: "
-            details = [f"{row['규격']}은 {row['가격']}원" for _, row in relevant_data.iterrows()]
-            prompt += ", ".join(details) + "\n"
+        dup = ""
+        for i in range(len(extracted_items)):
+            raw = extracted_items[i].split(",")
+            type = raw[0]
+            name = raw[1]
+            if dup == type + ',' + name:
+                txt = ""
+                for _ in raw[2:]:
+                    txt += _
+                prompt += f"\n-{txt} 원"
+            else:
+                dup = type + ',' + name
+                prompt += '\n' + dup
+                txt = ""
+                for _ in raw[2:]:
+                    txt += _
+                prompt += f"\n-{txt} 원"
 
-    prompt += "\n[이미지 분석 두 번째 품목]\n"
+    prompt += "\n\n[이미지 분석 두 번째 품목]"
     if not second_items or second_items == ["해당 품목을 찾을 수 없습니다."]:
         prompt += "해당 품목을 찾을 수 없습니다.\n"
     else:
-        for item in second_items:
-            relevant_data = df[df["품목"] == item][["규격", "가격"]].drop_duplicates()
-            prompt += f"{item}: "
-            details = [f"{row['규격']}은 {row['가격']}원" for _, row in relevant_data.iterrows()]
-            prompt += ", ".join(details) + "\n"
+        dup = ""
+        for i in range(len(extracted_items)):
+            raw = extracted_items[i].split(",")
+            type = raw[0]
+            name = raw[1]
+            if dup == type + ',' + name:
+                txt = ""
+                for _ in raw[2:]:
+                    txt += _
+                prompt += f"\n-{txt} 원"
+            else:
+                dup = type + ',' + name
+                prompt += '\n' + dup
+                txt = ""
+                for _ in raw[2:]:
+                    txt += _
+                prompt += f"\n-{txt} 원"
 
-    prompt += "\n[텍스트 분석 품목]\n"
-    if not extracted_items or extracted_items == ["해당 품목을 찾을 수 없습니다."]:
-        prompt += "해당 품목을 찾을 수 없습니다.\n"
-    else:
-        for item in extracted_items:
-            relevant_data = df[df["품목"] == item][["규격", "가격"]].drop_duplicates()
-            prompt += f"{item}: "
-            details = [f"{row['규격']}은 {row['가격']}원" for _, row in relevant_data.iterrows()]
-            prompt += ", ".join(details) + "\n"
+    prompt += "\n\n[텍스트 분석 품목]"
+
+    dup = ""
+    for i in range(len(extracted_items)):
+        raw = extracted_items[i].split(",")
+        type = raw[0]
+        name = raw[1]
+        if dup == type + ',' + name:
+            txt = ""
+            for _ in raw[2:]:
+                txt += _
+            prompt += f"\n-{txt} 원"
+        else:
+            dup = type + ',' + name
+            prompt += '\n' + dup
+            txt = ""
+            for _ in raw[2:]:
+                txt += _
+            prompt += f"\n-{txt} 원"
 
     prompt += "\n\n[최종 답변]:"
 
     print(prompt)  
     generate_start_time = time.time()
 
+    print("llama답변 생성 시작")
     response = llm_main(
         prompt,
         max_tokens=300,  
@@ -296,7 +345,6 @@ def generate_special_llm_response(user_input: str, extracted_keyword: str,
         top_p=0.8,
         repeat_penalty=1.2,
     )
-    
     print(f"llama답변생성 소요시간 : {time.time() - generate_start_time:.1f}s")
 
     final_response = response["choices"][0]["text"].strip()

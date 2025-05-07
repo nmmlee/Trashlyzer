@@ -38,12 +38,11 @@ body{
 }
 
 #help-text{
-    display: flex;
-    flex-direction: column;
     text-align: center;
     font-size: 16px;
-    padding: 0px 100px 20px 100px;
+    padding: 0px 30px 20px 30px;
     border-bottom: solid 1px gray;
+    white-space: nowrap;
 }
 
 #content-containers{

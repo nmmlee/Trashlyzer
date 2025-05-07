@@ -89,7 +89,7 @@ async def generate_text(request: QueryRequest):
     # 캐시히트시 캐시된 답변 전송
         cached_response: str = hit_cache_response(extracted_keyword)
         if cached_response != "해당 품목을 찾을 수 없습니다.":
-            print("return 합니다")
+            print("cache hit, return 합니다.\n", + response_text)
             return {"llm_response": cached_response}
     
     # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
@@ -100,5 +100,5 @@ async def generate_text(request: QueryRequest):
     
     # 생성된 응답 캐시에 저장
         #insert_cache(extracted_keyword, response_text)
-        print("캐시 불일치, 리턴합니다.")
+        print("cache miss, llm답변을 리턴합니다.\n" + response_text)
         return {"llm_response": response_text}

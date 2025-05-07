@@ -5,6 +5,8 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 var rateLimit = require("express-rate-limit");
+const { createClient } = require('redis');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const storage = multer.memoryStorage();
@@ -12,12 +14,15 @@ const upload = multer({
     storage : storage,
     limits : { fileSize : 10 * 1024 * 1024}, // 업로드 총(질의 + 사진) 10MB 제한
 });
+const redis = createClient();
+
 const PORT = 3000;
 const PYTHON_LLM_URL = "http://localhost:8000/generate/";  // Python 서버 주소
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('static'));
+redis.connect()
 
 
 // 동일 ip 잦은 llm 연산 요청 차단
@@ -54,10 +59,17 @@ app.get('/', (request, response) => {
   })
 
 
-// 유저 요청 post -> LLM 서버로 전달
+// 유저 요청 post -> 작업 큐 등록, LLM 서버로 전달
 app.post("/ask", upload.fields([{ name: "image", maxCount: 1 }, { name: "text", maxCount: 1 }]), async (req, res) => {
+
+    const task_id = uuidv4();; // 작업 ID
+    await redis.set(task_id, JSON.stringify({ status: "waiting" })); // 작업 등록
+    res.json({ 
+        "task_id" : task_id,
+        "llm_response" : "답변 생성 중입니다. 최대 6분의 시간이 소요됩니다."
+    }); // 일단 응답 바로 보냄("/result/id에 get으로 작업완료 주기적으로 확인하게 됨)
+
     try {
-        
         const userQuery = req.body.text;
         var userImage = "";
         
@@ -78,12 +90,36 @@ app.post("/ask", upload.fields([{ name: "image", maxCount: 1 }, { name: "text", 
         const response = await axios.post(PYTHON_LLM_URL, { 
             text : userQuery,
             image : userImage
-        });
+        })
+        
+        await redis.set(task_id, JSON.stringify({
+            status: "done",
+            llm_response: response.data.llm_response
+        }));
+        
 
-        console.log(`[nodejs] 생성된 LLM 응답 : ${response.data.llm_response}`);
-        res.json({ llm_response: response.data.llm_response });
+        // console.log(`[nodejs] 생성된 LLM 응답 : ${response.data.llm_response}`);
+        // res.json({ llm_response: response.data.llm_response });
     } catch (error) {
         console.error("[nodejs] 오류 발생 :", error.message);
+    }
+});
+
+// 작업큐 완료됐나 확인
+app.get("/result/:task_id", async (req, res) => {
+    const raw = await redis.get(req.params.task_id);
+  
+    if (!raw) {
+        return res.status(404).json({ error: "존재하지 않는 task_id" });
+    }
+  
+    const parsed = JSON.parse(raw);
+    if (parsed.status === "waiting") {
+        return res.json({ status: "waiting" });
+    }
+    else {
+        console.log(parsed)
+        return res.json(parsed);
     }
 });
 

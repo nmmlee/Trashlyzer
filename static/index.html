@@ -44,8 +44,11 @@
             const responseBox = document.getElementById("result"); // 결과 출력할 곳
 
             if (!userInput.trim()) {
-                responseBox.innerText = "보낼값 입력";
+                responseBox.innerText = "내용을 입력해주세요.";
                 return;
+            }
+            else {
+                responseBox.innerText = "Trashlyzer 서버에서 답변 생성 중입니다. 최대 5~6분이 소요됩니다. 사용자가 많으면 시간이 더 소요될 수 있습니다."
             }
             
             var formData = new FormData();
@@ -58,18 +61,30 @@
 
             try {
                 // Node.js 서버로 데이터 전송
-                const res = await fetch("http://localhost:3000/ask", {
+                const res = await fetch("http://www.trashlyzer.com/ask", {
                     method: "POST",
                     body : formData
                 });
 
                 const data = await res.json();
-                console.log("success");
-                responseBox.innerText = `LLM 응답 : ${data.llm_response}`;
+                
+                const interval = setInterval(async () => {
+                    const result = await fetch(`/result/${data.task_id}`);
+                    const result_data = await result.json();
 
-                // showdown.js 이용(아래 주석 제거 하고, 위에 `LLM 응답` 코드 대신 넣으면 됩니다!) 
-                // const converter = new showdown.Converter();
-                // responseBox.innerHTML = converter.makeHtml(data.llm_response);
+                    if (result_data.status === "done") {
+                        responseBox.innerText = `LLM 응답 : ${result_data.llm_response}`;
+                        clearInterval(interval);
+                    }
+                    else if (result_data.status === "error") {
+                        console.error("/result 확인 에러:", result_datadata.error);
+                        clearInterval(interval);
+                    }
+                    else {
+                        console.log("응답 대기");
+                    }
+                    }, 3000); // 3초마다 완료 확인
+
             } catch (error) {
                 console.error("[html] 데이터전송 실패 : ", error);
             }
@@ -122,6 +137,10 @@
                     handleFile(files[0]);
                 }
             });
+
+            fileInput.addEventListener("change", function (event) {
+                handleFile(event.target.files[0]);
+            });
         });
 
     </script>
@@ -134,10 +153,11 @@
     <div id = "main">
         <div id = "help-area">
             <div id = "help-title">
-                <span><b>💡노원구 대형 쓰레기 분리배출</b></span>
+                <span><b>💡 노원구 대형 쓰레기 분리배출</b></span>
             </div>
             <div id = "help-text-area">
-                <div id ="help-text">이미지를 입력 후, 요청사항을 작성하면 대형 쓰레기 처리비용을 알아볼 수 있습니다!</div>
+                <div id ="help-text">이미지를 입력 후, 요청사항을 작성하면 대형 쓰레기 처리비용을 알아볼 수 있습니다!<br>자세한 정보 확인과 대형 쓰레기 분리배출 신청은 <span><a href="https://smartclean.nowon.kr/" style="display:inline !important;">스마트클린 노원</a></span>에서 가능합니다.
+                </div>
             </div>
         </div>
 
