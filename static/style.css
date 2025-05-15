@@ -110,7 +110,7 @@ body{
     display: none;
 }
 
-label{
+.label-choose-image {
     border-radius: 10px;
     background-color: #3A3838;
     color: #F3F3F3;
@@ -150,6 +150,23 @@ label{
     width : 600px; 
     height: 150px;
 }
+
+.mode-options {
+    margin: 8px 0;
+    display: flex;
+    gap: 8px;
+    float: right;
+}
+.mode-label {
+    border: 1px solid #555;
+    border-radius: 8px;
+    background-color: #444;
+    color: #fff;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
 
 @media all and (max-width : 480px) {
     #header{
@@ -249,7 +266,7 @@ label{
         display: none;
     }
 
-    label{
+    .label-choose-image{
         border-radius: 10px;
         background-color: #3A3838;
         color: #F3F3F3;

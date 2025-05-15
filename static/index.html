@@ -14,92 +14,71 @@
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
     <script>
         async function sendQuery() {
-            const userInput = document.getElementById("user-text").value; // 입력값 가져오기
-            var userImage = document.getElementById("user-image").files[0]; // 입력이미지 가져오기
-            
+            const userInput = document.getElementById("user-text").value;
+            var userImage = document.getElementById("user-image").files[0];
+
             // 이미지 압축
             if (userImage) {
-                // 아이폰 HEIC 형식일 때(다른 형식으로 변환후 압축해야됨)
-                // 설마 아이폰인데 안티 CDN까지 깔진 않았겠지
                 if (userImage.type === "image/heic" || userImage.name.toLowerCase().endsWith(".heic")) {
-                    const jpegBlob = await heic2any({
-                        blob: userImage,
-                        toType: "image/jpeg",
-                        quality: 0.9
-                    });
+                    const jpegBlob = await heic2any({ blob: userImage, toType: "image/jpeg", quality: 0.9 });
                     userImage = jpegBlob;
                 }
                 try {
-                    const options = {
-                        maxSizeMB: 2.5, // 압축하면 2.5MB 이하로
-                        maxWidthOrHeight: 2048, // 4096급은 메모리 부하 심함
-                        useWebWorker: true
-                    };
+                    const options = { maxSizeMB: 2.5, maxWidthOrHeight: 2048, useWebWorker: true };
                     userImage = await imageCompression(userImage, options);
                 } catch (err) {
                     console.error("이미지 압축 실패 : ", err);
                 }
             }
 
-            const responseBox = document.getElementById("result"); // 결과 출력할 곳
-
+            const responseBox = document.getElementById("result");
             if (!userInput.trim()) {
                 responseBox.innerText = "내용을 입력해주세요.";
                 return;
+            } else {
+                responseBox.innerText = "Trashlyzer 서버에서 답변 생성 중입니다. 최대 5~6분이 소요됩니다. 사용자가 많으면 시간이 더 소요될 수 있습니다.";
             }
-            else {
-                responseBox.innerText = "Trashlyzer 서버에서 답변 생성 중입니다. 최대 5~6분이 소요됩니다. 사용자가 많으면 시간이 더 소요될 수 있습니다."
-            }
-            
+
             var formData = new FormData();
+            // 선택된 모드 추가
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            formData.append("mode", mode);
             formData.append("text", userInput);
             if (userImage) {
                 formData.append("image", userImage);
             }
 
-            console.log(formData.body);
-
             try {
-                // Node.js 서버로 데이터 전송
-                const res = await fetch("http://www.trashlyzer.com/ask", {
-                    method: "POST",
-                    body : formData
-                });
-
+                const res = await fetch("http://www.trashlyzer.com/ask", { method: "POST", body: formData });
                 const data = await res.json();
-                
+
                 const interval = setInterval(async () => {
                     const result = await fetch(`/result/${data.task_id}`);
                     const result_data = await result.json();
-
                     if (result_data.status === "done") {
                         responseBox.innerText = `LLM 응답 : ${result_data.llm_response}`;
                         clearInterval(interval);
-                    }
-                    else if (result_data.status === "error") {
-                        console.error("/result 확인 에러:", result_datadata.error);
+                    } else if (result_data.status === "error") {
+                        console.error("/result 확인 에러:", result_data.error);
                         clearInterval(interval);
-                    }
-                    else {
+                    } else {
                         console.log("응답 대기");
                     }
-                    }, 3000); // 3초마다 완료 확인
-
+                }, 3000);
             } catch (error) {
                 console.error("[html] 데이터전송 실패 : ", error);
             }
         }
-        // DOM이 완전히 로드된 후 이벤트 리스너 추가
+
         document.addEventListener("DOMContentLoaded", function () {
-            const fileInput = document.getElementById("user-image")
+            const fileInput = document.getElementById("user-image");
             const allowedExtensions = ["png", "jpeg", "jpg", "webp"];
             const helpText = document.getElementById("user-image-help");
             const dropArea = document.getElementById("user-image-container");
 
-            function handleFile(file){
+            function handleFile(file) {
                 if (file) {
                     const fileExtension = file.name.split('.').pop().toLowerCase();
-                    // 지원하지 않은 확장자일 경우
                     if (!allowedExtensions.includes(fileExtension)) {
                         event.target.value = "";
                         helpText.textContent = "지원하지 않는 파일 형식입니다.";
@@ -108,31 +87,19 @@
                         helpText.textContent = `${file.name} 정상적으로 선택되었습니다.`;
                         helpText.style.color = "green";
                     }
-                    // 파일 선택이 되어있지 않을 경우
                 } else {
                     helpText.textContent = "여러분들의 이미지는 보호됩니다! 저장 없이 진행됩니다.";
                     helpText.style.color = "black";
                 }
             }
 
-            // drag - drop 기능 구현. 드래그 및 hover 액션이면 파란 테두리 나타나게 함
-            // drop했을 때 내려놓은 파일이 존재하는지 확인, 존재하면 해당 파일 유효성 유무 판단
-            // TODO : 화면 전체를 hover vs 입력 input만 hover
-            dropArea.addEventListener("dragover", (e) => {
-                e.preventDefault();
-                dropArea.classList.add("hover");
-            });
-            
-            dropArea.addEventListener("dragleave", () =>{
-                dropArea.classList.remove("hover");
-            });
-
+            dropArea.addEventListener("dragover", (e) => { e.preventDefault(); dropArea.classList.add("hover"); });
+            dropArea.addEventListener("dragleave", () => { dropArea.classList.remove("hover"); });
             dropArea.addEventListener("drop", (e) => {
                 e.preventDefault();
                 dropArea.classList.remove("hover");
-
                 const files = e.dataTransfer.files;
-                if(files.length > 0){
+                if (files.length > 0) {
                     fileInput.files = files;
                     handleFile(files[0]);
                 }
@@ -142,60 +109,49 @@
                 handleFile(event.target.files[0]);
             });
         });
-
     </script>
 </head>
 <body>
-    <header id = "header">
-        <div>Trashlyzer</div>
-    </header>
-
-    <div id = "main">
-        <div id = "help-area">
-            <div id = "help-title">
-                <span><b>💡 노원구 대형 쓰레기 분리배출</b></span>
-            </div>
-            <div id = "help-text-area">
-                <div id ="help-text">이미지를 입력 후, 요청사항을 작성하면 대형 쓰레기 처리비용을 알아볼 수 있습니다!<br>자세한 정보 확인과 대형 쓰레기 분리배출 신청은 <span><a href="https://smartclean.nowon.kr/" target="_blank" display:inline !important;">스마트클린 노원</a></span>에서 가능합니다.
+    <header id="header"><div>Trashlyzer</div></header>
+    <div id="main">
+        <div id="help-area">
+            <div id="help-title"><span><b>💡 노원구 대형 쓰레기 분리배출</b></span></div>
+            <div id="help-text-area">
+                <div id="help-text">
+                    이미지를 입력 후, 요청사항을 작성하면 대형 쓰레기 처리비용을 알아볼 수 있습니다!<br>
+                    자세한 정보 확인과 대형 쓰레기 분리배출 신청은 <span><a href="https://smartclean.nowon.kr/" target="_blank">스마트클린 노원</a></span>에서 가능합니다.
                 </div>
             </div>
         </div>
-
-        <!-- 사용자와 상호작용 하는 공간-->
-        <div id = "content-containers">
-            <!-- gpt 응답이 들어갈 공간-->
-            <div id = "answer-content-container">
-                <div id ="answer-title">
-                    답변
-                </div>
-                <div id = "gpt-answer-text">
-                    <p id="result">결과 표시되는 곳</p>
-                </div>
+        <div id="content-containers">
+            <div id="answer-content-container">
+                <div id="answer-title">답변</div>
+                <div id="gpt-answer-text"><p id="result">결과 표시되는 곳</p></div>
             </div>
-            
-            <div id = "user-input-containers">
-                <!-- 이미지 선택 카드 UI-->
-                <div id = "user-image-container">
-                    <label for = "user-image">
-                        대형 쓰레기 이미지 선택        
-                        <input type="file" id="user-image" placeholder="대형 쓰레기 이미지 선택" accept=".png, .jpeg, .jpg, .webp">               
-                    </label>                   
-                    <div id = "user-image-help">여러분들의 이미지는 보호됩니다! 저장 없이 진행됩니다.</div>
+            <div id="user-input-containers">
+                <div id="user-image-container">
+                    <label class="label-choose-image" for="user-image">
+                        대형 쓰레기 이미지 선택
+                        <input type="file" id="user-image" accept=".png, .jpeg, .jpg, .webp">
+                    </label>
+                    <div id="user-image-help">여러분들의 이미지는 보호됩니다! 저장 없이 진행됩니다.</div>
                 </div>
-                <!-- 유저 텍스트 입력 카드 UI-->
-                <div id = "user-text-containers">
-                    <div id = "user-input-help">
-                        😀대형쓰레기 이미지와 함께 전달하고 싶은 내용을
-                        작성해주세요!
+                <div id="user-text-containers">
+                    <div id="user-input-help">😀사진과 함께 제품 분류 + 간단한 설명을 작성해주세요!
+                        <br>정확한 결과를 위해 "가구류 대리석 탁상" 또는 "가전제품 TV"와 같이 써주시면 더 좋아요!
                     </div>
-                    <div id = "user-text-input-container">
+                    <div id="user-text-input-container">
                         <input type="text" id="user-text" placeholder="텍스트 입력">
-                        <button onclick="sendQuery()">↑</button>
+                        <div class="mode-options">
+                            <label class="mode-label"><input type="radio" name="mode" value="fast" checked> 빠른 답변 모드</label>
+                            <label class="mode-label"><input type="radio" name="mode" value="premium">AI 답변 모드</label>
+                            <button onclick="sendQuery()">질문 전송 !</button>
+                        </div>
+                        
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </body>
-</head>
 </html>

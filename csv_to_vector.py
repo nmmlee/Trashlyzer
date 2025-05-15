@@ -7,7 +7,7 @@ model = SentenceTransformer("jhgan/ko-sroberta-multitask")
 
 def extract_descriptions(csv_path: str) -> list[str]:
     descriptions = []
-    with open(csv_path, "r", encoding="euc-kr") as f:
+    with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
         next(reader, None)  # 헤더 스킵
         for row in reader:
@@ -25,6 +25,7 @@ def run():
     results = []
 
     for i, desc in enumerate(descriptions):
+        desc = desc.replace("(1599-0903 단일 무상 수거 품목)", "")
         print(f"[{i+1}/{len(descriptions)}] embedding: {desc}")
         try:
             vector = get_embedding(desc)
@@ -35,7 +36,7 @@ def run():
         except Exception as e:
             print(f"error: {e}")
 
-    with open("item_embeddings.json", "w", encoding="utf-8") as f:
+    with open("./data/대형폐기물분류표_vectorized_sroberta.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False)
 
     print("완료")

@@ -66,7 +66,7 @@ app.post("/ask", upload.fields([{ name: "image", maxCount: 1 }, { name: "text", 
     await redis.set(task_id, JSON.stringify({ status: "waiting" })); // 작업 등록
     res.json({ 
         "task_id" : task_id,
-        "llm_response" : "답변 생성 중입니다. 최대 6분의 시간이 소요됩니다."
+        "llm_response" : "답변 생성 중입니다. AI답변 생성의 경우, 1개의 답변 생성에 5~6분의 시간이 소요됩니다."
     }); // 일단 응답 바로 보냄("/result/id에 get으로 작업완료 주기적으로 확인하게 됨)
 
     try {
@@ -89,7 +89,8 @@ app.post("/ask", upload.fields([{ name: "image", maxCount: 1 }, { name: "text", 
         // Python LLM 서버로 요청 보내기.
         const response = await axios.post(PYTHON_LLM_URL, { 
             text : userQuery,
-            image : userImage
+            image : userImage,
+            mode : req.body.mode
         })
         
         await redis.set(task_id, JSON.stringify({

@@ -64,10 +64,10 @@ vectorizer = SentenceTransformer("jhgan/ko-sroberta-multitask")
 
 # csv 불러오기, 품목에서 유사도 검색에 방해되는 (), / 제외한 csv 사용.
 file_path = "./data/대형폐기물분류표_노원_crawler.csv"
-df = pd.read_csv(file_path, encoding="euc-kr")
+df = pd.read_csv(file_path, encoding="utf-8")
 items = df["품목"].astype(str).unique().tolist()
 
-# 코사인검색(벡터화 임베디드 데이터 기반)용 전처리 데이터(openai text-embedding-3-large 기반)
+# 코사인검색(벡터화 임베디드 데이터 기반)용 전처리 데이터(ko-sroberta 기반)
 with open("./data/대형폐기물분류표_vectorized_sroberta.json", "r", encoding="utf-8") as f:
     embedding_data = json.load(f)
 item_texts = [item["text"] for item in embedding_data]
@@ -133,7 +133,7 @@ def execute_query(query: str, *args):
     try:
         # SELECT 문이면 SELECT 결과(튜플) 리턴
         if (query.strip().upper().startswith("SELECT")):
-            result = cursor.fetchall()
+            result = cursor.fetchone()
         # 이외에는 실행확정하고 row 수 반납(int)
         else:
             cursor.commit()
@@ -153,8 +153,9 @@ def execute_query(query: str, *args):
 def hit_cache_response(keyword: str):
     # 캐시 테이블 키워드 존재 검색
     response = execute_query(QUERY_FIND, keyword.strip())
+    print("execute_query결과: " + str(type(response)))
 # 캐시 미스
-    if response == None or response == ():
+    if response == None or response == () or response == 0 or response == "":
         return "해당 품목을 찾을 수 없습니다."
     # 캐시 히트
     else:
@@ -192,8 +193,9 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
 4. 유리 별도는 유리는 따로 돈을 받는다는 것이고, 유리는 아래와 같이 수수료를 내야게합니다.
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 미만)",1000
 "가구류","유리","긴 면이 50cm 마다(두께 8mm 이상)",1500
-5. '장롱 옷장'처럼 두 개의 품목이 함께 표시된 경우, 두 품목 모두 해당됩니다. 수수료를 안내해야 합니다.
+5. 검색된 항목를 최대한 많이 포함하여 수수료를 안내해야 합니다.
 6. 구체적인 정보가 필요한경우 검색된 품목들을 규격과 가격을 최대한 설명하시고, 그 다음에 추가 정보를 요구하세요.
+7. 어떠한 경우에도 수수료 정보입니다. 구매가 아닙니다.
 
 [사용자 질문]
 {user_input}
@@ -229,7 +231,7 @@ def generate_llm_response(user_input: str, extracted_keyword: str, matched_items
     response = llm_main(
         prompt,
         max_tokens=300,  
-        stop=["<|endoftext|>", "<|im_end|>"],  
+        stop=["<|endoftext|>", "<|im_end|>","<|/s|"],  
         temperature=0.1,  
         top_p=0.8,
         repeat_penalty=1.2,
@@ -340,10 +342,11 @@ def generate_special_llm_response(user_input: str, extracted_keyword: str,
     response = llm_main(
         prompt,
         max_tokens=300,  
-        stop=["<|endoftext|>", "<|im_end|>"],  
+        stop=["<|im_end|>","<|endoftext|>","<|/s|>"],
+        eos_token_id=151645,   
         temperature=0.1,  
         top_p=0.8,
-        repeat_penalty=1.2,
+        repeat_penalty=1.4,
     )
     print(f"llama답변생성 소요시간 : {time.time() - generate_start_time:.1f}s")
 
@@ -383,3 +386,46 @@ def image_gumsaek(user_image):
 
     except Exception as e:
         return "에러발생"
+
+def generate_special_template_response(user_input: str, extracted_keyword: str, 
+                                  first_items: list, second_items: list, extracted_items: list):
+    first_ = ""
+    for i in first_items:
+        for j in i:
+            first_ += j + ", "
+        first_ += '원\n'
+    
+    second_ = ""
+    for i in second_items:
+        for j in i:
+            secod_ += j + ", "
+        second_ += '원\n'
+    third_ = ""
+    for i in extracted_items:
+        for j in i:
+            third_ += j + ", "
+        third_ += '원\n'
+    
+    tmplt_response = f"""
+요청해주신 품목과 유사한 품목들은 다음과 같이 검색되었습니다.
+
+이미지 분석 결과 :
+{first_}
+{second_}
+
+텍스트 분석 결과 :
+{extracted_items}
+"""
+    return tmplt_response
+
+def generate_template_response(user_input: str, extracted_keyword: str, matched_items: list):
+    first_ = ""
+    for i in matched_items:
+        first_ += i + "원\n"
+
+    tmplt_response = f"""
+찾으시려는 품목은 "{extracted_keyword}"로 확인되었으며, 이와 유사한 품목은 다음과 같이 분석되었습니다.
+
+{first_}
+"""
+    return tmplt_response
