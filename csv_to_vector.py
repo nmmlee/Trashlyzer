@@ -3,7 +3,7 @@ import json
 from sentence_transformers import SentenceTransformer
 
 # 모델 로드
-model = SentenceTransformer("jhgan/ko-sroberta-multitask")
+model = SentenceTransformer("snunlp/KR-SBERT-V40K-klueNLI-augSTS")
 
 def extract_descriptions(csv_path: str) -> list[str]:
     descriptions = []

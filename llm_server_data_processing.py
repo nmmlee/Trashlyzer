@@ -36,8 +36,8 @@ MODEL_PATH_KEYWORD = "./models/Little.gguf"  # 문장에서 CSV에 검색할 키
   https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE
 - Qwen 2.5: Apache 2.0 License에 따라 제공됩니다.
   https://huggingface.co/Qwen/Qwen2.5-0.5B/blob/main/LICENSE
-- ko-sroberta-multitask: CC-BY-4.0 License에 따라 제공됩니다.
-  https://github.com/jhgan00/ko-sentence-transformers/blob/main/LICENSE
+- snunlp의 KR-SBERT-V40K-klueNLI-augSTS: MIT License에 따라 제공됩니다.
+  https://github.com/snunlp/KR-SBERT
 
 Copyright © Meta Platforms, Inc. / Alibaba Group Holding Limited.
 """
@@ -60,7 +60,7 @@ llm_keyword = Llama(
     n_ctx=4096,
     verbose=False
 )
-vectorizer = SentenceTransformer("jhgan/ko-sroberta-multitask")
+vectorizer = SentenceTransformer("snunlp/KR-SBERT-V40K-klueNLI-augSTS")
 
 # csv 불러오기, 품목에서 유사도 검색에 방해되는 (), / 제외한 csv 사용.
 file_path = "./data/대형폐기물분류표_노원_crawler.csv"
@@ -68,7 +68,7 @@ df = pd.read_csv(file_path, encoding="utf-8")
 items = df["품목"].astype(str).unique().tolist()
 
 # 코사인검색(벡터화 임베디드 데이터 기반)용 전처리 데이터(ko-sroberta 기반)
-with open("./data/대형폐기물분류표_vectorized_sroberta.json", "r", encoding="utf-8") as f:
+with open("./data/대형폐기물분류표_vectorized_krsbert.json", "r", encoding="utf-8") as f:
     embedding_data = json.load(f)
 item_texts = [item["text"] for item in embedding_data]
 item_vectors = np.array([item["embedding"] for item in embedding_data])
