@@ -12,7 +12,17 @@ import os
 import time
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from sentence_transformers import SentenceTransformer
+
+# Gemini API 키 설정
+try:
+    with open("api_token.json", "r") as f:
+        config = json.load(f)
+        token = config["gemini_api"]["token"]
+        genai.configure(api_key=token)
+except FileNotFoundError:
+    print("api_token.json 파일을 찾을 수 없습니다. API 키를 설정해주세요.")
+    # 또는 기본값 설정 또는 프로그램 종료
+    exit()
 
 
 QUERY_FIND = '''SELECT response FROM cache WHERE keyword = %s'''
@@ -62,15 +72,13 @@ llm_keyword = Llama(
     verbose=False
 )
 
-vectorizer = SentenceTransformer("snunlp/KR-SBERT-V40K-klueNLI-augSTS")
-
 # csv 불러오기, 품목에서 유사도 검색에 방해되는 (), / 제외한 csv 사용.
 file_path = "./data/대형폐기물분류표_노원_crawler.csv"
 df = pd.read_csv(file_path, encoding="utf-8")
 items = df["품목"].astype(str).unique().tolist()
 
-# 코사인검색(벡터화 임베디드 데이터 기반)용 전처리 데이터(ko-sroberta 기반)
-with open("./data/대형폐기물분류표_vectorized_krsbert.json", "r", encoding="utf-8") as f:
+# 코사인검색(벡터화 임베디드 데이터 기반)용 전처리 데이터(gemini 기반)
+with open("./data/대형폐기물분류표_vectorized_gemini.json", "r", encoding="utf-8") as f:
     embedding_data = json.load(f)
 item_texts = [item["text"] for item in embedding_data]
 item_vectors = np.array([item["embedding"] for item in embedding_data])
@@ -169,9 +177,14 @@ def insert_cache(keyword: str, response: str):
     
 
 #유사도 검색, 벡터화 데이터 기반 코사인 검색
-def find_closest_item(query: str, top_k):
+def find_closest_item(query: str, top_k, model_name="models/embedding-001"):
     
-    query_vec = vectorizer.encode(query).reshape(1, -1) # 질의 키워드 벡터화
+    query_vec = genai.embed_content(
+        model=model_name,
+        content=query,
+        task_type="RETRIEVAL_QUERY"
+    )["embedding"]
+    query_vec = np.array(query_vec).reshape(1, -1)
     
     similarities = cosine_similarity(query_vec, item_vectors)[0]
 
