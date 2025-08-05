@@ -55,7 +55,7 @@ def fast_mode(request: QueryRequest):
         #에러발생시
         if dapjang == "에러발생":
             response_text = "죄송합니다. 이미지 분석이 원할하지 않습니다 :( 다음에 다시 시도해주세요!"
-            return cached_response
+            return response_text
         #gemini에게 답장을 받았다면
         else:
             #키워드 추출과 대조
@@ -63,23 +63,26 @@ def fast_mode(request: QueryRequest):
             #Gemini 답장에 키워드가 있는경우
             print("gemini 이미지분석 결과 :\n" + dapjang)
             if extracted_keyword in dapjang:
-                    #캐시 확인
-                    cached_response: str = hit_cache_response(extracted_keyword)
-                    #캐시에 있을경우
-                    if cached_response != "해당 품목을 찾을 수 없습니다.":
-                        print("이미지 분석 결과 동일 확인, 캐시를 리턴합니다.")
-                        return cached_response
+                #캐시 확인
+                '''
+                cached_response: str = hit_cache_response(extracted_keyword)
+                #캐시에 있을경우
+                if cached_response != "해당 품목을 찾을 수 없습니다.":
+                    print("이미지 분석 결과 동일 확인, 캐시를 리턴합니다.")
+                    return cached_response
                     
-                    #캐시에 없을경우
-                    else:
-                        # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
-                        similar_items = find_closest_item(extracted_keyword, 5)
-                        #답변반환
-                        response_text = generate_template_response(instruction, extracted_keyword, similar_items)
-                        #cache insert 함수 일단 뺐습니다. TODO: 캐시 삽입 로직 추가
-                        #답변반환
-                        print("이미지 분석 결과 동일 확인, LLM 답변을 리턴하고 캐시에 저장합니다.")
-                        return response_text
+                    
+                #캐시에 없을경우
+                else:
+                '''
+                # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
+                similar_items = find_closest_item(extracted_keyword, 5)
+                #답변반환
+                response_text = generate_template_response(instruction, extracted_keyword, similar_items)
+                #cache insert 함수 일단 뺐습니다. TODO: 캐시 삽입 로직 추가
+                #답변반환
+                print("이미지 분석 결과 동일 확인, LLM 답변을 리턴하고 캐시에 저장합니다.")
+                return response_text
                     
             #Gemini 답장이 키워드에 없는경우
             else:
@@ -102,15 +105,17 @@ def fast_mode(request: QueryRequest):
 
     #이미지가 삽입되지 않았을 경우
     else:
-         # 키워드 추출 함수 (data_processing 모듈)
+        # 키워드 추출 함수 (data_processing 모듈)
         extracted_keyword = instruction
 
     # 캐시히트시 캐시된 답변 전송
-        cached_response: str = hit_cache_response(extracted_keyword)
-        if cached_response != "해당 품목을 찾을 수 없습니다.":
-            print(extracted_keyword)
-            print("[이미지삽입x fast] cache hit, return 합니다.\n" + cached_response)
-            return cached_response
+        '''
+            cached_response: str = hit_cache_response(extracted_keyword)
+            if cached_response != "해당 품목을 찾을 수 없습니다.":
+                print(extracted_keyword)
+                print("[이미지삽입x fast] cache hit, return 합니다.\n" + cached_response)
+                return cached_response
+        '''
     
     # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
         similar_items = find_closest_item(extracted_keyword, 5)
@@ -143,23 +148,26 @@ def premium_mode(request: QueryRequest):
             #Gemini 답장에 키워드가 있는경우
             print("gemini 이미지분석 결과 :\n" + dapjang)
             if extracted_keyword in dapjang:
-                    #캐시 확인
-                    cached_response: str = hit_cache_response(extracted_keyword)
-                    #캐시에 있을경우
-                    if cached_response != "해당 품목을 찾을 수 없습니다.":
-                        print("이미지 분석 결과 동일 확인, 캐시를 리턴합니다.")
-                        return cached_response
-                    
-                    #캐시에 없을경우
-                    else:
-                        # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
-                        similar_items = find_closest_item(extracted_keyword, 5)
-                        #답변반환
-                        response_text = generate_llm_response(instruction, extracted_keyword, similar_items)
-                        #cache insert 함수 일단 뺐습니다. TODO: 캐시 삽입 로직 추가
-                        #답변반환
-                        print("이미지 분석 결과 동일 확인, LLM 답변을 리턴하고 캐시에 저장합니다.")
-                        return response_text
+                #캐시 확인
+                '''
+                cached_response: str = hit_cache_response(extracted_keyword)
+                #캐시에 있을경우
+                if cached_response != "해당 품목을 찾을 수 없습니다.":
+                    print("이미지 분석 결과 동일 확인, 캐시를 리턴합니다.")
+                    return cached_response
+                
+                
+                #캐시에 없을경우
+                else:
+                '''
+                # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
+                similar_items = find_closest_item(extracted_keyword, 5)
+                #답변반환
+                response_text = generate_llm_response(instruction, extracted_keyword, similar_items)
+                #cache insert 함수 일단 뺐습니다. TODO: 캐시 삽입 로직 추가
+                #답변반환
+                print("이미지 분석 결과 동일 확인, LLM 답변을 리턴하고 캐시에 저장합니다.")
+                return response_text
                     
             #Gemini 답장이 키워드에 없는경우
             else:
@@ -185,20 +193,22 @@ def premium_mode(request: QueryRequest):
          # 키워드 추출 함수 (data_processing 모듈)
         extracted_keyword = extract_llm_keywords(instruction)
 
-    # 캐시히트시 캐시된 답변 전송
-        cached_response: str = hit_cache_response(extracted_keyword)
-        if cached_response != "해당 품목을 찾을 수 없습니다.":
-            print("추출키워드 : " + extracted_keyword)
-            print("[이미지삽입x premium]cache hit, return 합니다.\n" + cached_response)
-            return cached_response
+        # 캐시히트시 캐시된 답변 전송
+        '''
+            cached_response: str = hit_cache_response(extracted_keyword)
+            if cached_response != "해당 품목을 찾을 수 없습니다.":
+                print("추출키워드 : " + extracted_keyword)
+                print("[이미지삽입x premium]cache hit, return 합니다.\n" + cached_response)
+                return cached_response
+        '''
     
-    # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
+        # 유사도 검색 함수(5는 5개 반환) (data_processing 모듈)
         similar_items = find_closest_item(extracted_keyword, 5)
 
-    # 응답생성  (data_processing 모듈)
+        # 응답생성  (data_processing 모듈)
         response_text = generate_llm_response(instruction, extracted_keyword, similar_items)
     
-    # 생성된 응답 캐시에 저장
+        # 생성된 응답 캐시에 저장
         #insert_cache(extracted_keyword, response_text)
         print("cache miss, llm답변을 리턴합니다.\n" + response_text)
         return response_text

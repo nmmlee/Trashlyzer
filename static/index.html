@@ -49,7 +49,7 @@
             }
 
             try {
-                const res = await fetch("http://www.trashlyzer.com/ask", { method: "POST", body: formData });
+                const res = await fetch("https://www.trashlyzer.com/ask", { method: "POST", body: formData });
                 const data = await res.json();
 
                 const interval = setInterval(async () => {
