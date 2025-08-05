@@ -1,9 +1,17 @@
 import csv
 import json
-from sentence_transformers import SentenceTransformer
+import google.generativeai as genai
 
-# 모델 로드
-model = SentenceTransformer("snunlp/KR-SBERT-V40K-klueNLI-augSTS")
+# Gemini API 키 설정
+try:
+    with open("api_token.json", "r") as f:
+        config = json.load(f)
+        token = config["gemini_api"]["token"]
+        genai.configure(api_key=token)
+except FileNotFoundError:
+    print("api_token.json 파일을 찾을 수 없습니다. API 키를 설정해주세요.")
+    exit()
+
 
 def extract_descriptions(csv_path: str) -> list[str]:
     descriptions = []
@@ -17,8 +25,12 @@ def extract_descriptions(csv_path: str) -> list[str]:
             descriptions.append(item_text)
     return descriptions
 
-def get_embedding(text: str):
-    return model.encode(text).tolist()
+def get_embedding(text: str, model_name="models/embedding-001"):
+    return genai.embed_content(
+        model=model_name,
+        content=text,
+        task_type="RETRIEVAL_DOCUMENT"
+    )["embedding"]
 
 def run():
     descriptions = extract_descriptions("./data/대형폐기물분류표_노원_crawler.csv")
@@ -36,10 +48,10 @@ def run():
         except Exception as e:
             print(f"error: {e}")
 
-    with open("./data/대형폐기물분류표_vectorized_sroberta.json", "w", encoding="utf-8") as f:
+    with open("./data/대형폐기물분류표_vectorized_gemini.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False)
 
     print("완료")
 
-
-run()
+if __name__ == "__main__":
+    run()
