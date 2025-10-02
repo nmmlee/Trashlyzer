@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  trashlyzer_fastapi_server:
+    build: ./fastapi
+    container_name: trashlyzer_fastapi_server
+
+  trashlyzer_nodejs_server:
+    build: ./nodejs
+    container_name: trashlyzer_nodejs_server
+    ports:
+      - "3000:3000"
+    depends_on:
+      - trashlyzer_fastapi_server
+
+  trashlyzer_redis:
+    image: "redis:alpine"
+    container_name: trashlyzer_redis
+    ports:
+      - "12773:6379"
+    restart: always

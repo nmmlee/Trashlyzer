@@ -14,10 +14,10 @@ const upload = multer({
     storage : storage,
     limits : { fileSize : 10 * 1024 * 1024}, // 업로드 총(질의 + 사진) 10MB 제한
 });
-const redis = createClient();
+const redis = createClient({ url: 'redis://trashlyzer_redis:6379' });
 
 const PORT = 3000;
-const PYTHON_LLM_URL = "http://localhost:8000/generate/";  // Python 서버 주소
+const PYTHON_LLM_URL = "http://trashlyzer_fastapi_server:8000/generate/";  // Python 서버 주소
 
 app.use(cors());
 app.use(express.json());

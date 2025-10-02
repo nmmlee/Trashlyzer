@@ -1,0 +1,14 @@
+fastapi
+google
+google.generativeai
+llama-cpp-python
+numpy
+opencv-python
+pandas
+pillow
+pydantic
+pymysql
+scikit-learn
+sentence-transformers
+setproctitle
+uvicorn

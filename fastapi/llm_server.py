@@ -10,6 +10,9 @@ import cv2
 import base64
 from llm_server_utilities import *
 from llm_server_data_processing import *
+import setproctitle
+
+setproctitle.setproctitle("trashlyzer_llm_server")
 
 # fastapi 클래스 생성
 app = FastAPI()
