@@ -401,7 +401,7 @@ def generate_special_template_response(user_input: str, extracted_keyword: str,
     second_ = ""
     for i in second_items:
         for j in i:
-            secod_ += j + ", "
+            second_ += j + ", "
         second_ += '원\n'
     third_ = ""
     for i in extracted_items:
